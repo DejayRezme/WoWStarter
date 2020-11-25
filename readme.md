@@ -4,7 +4,11 @@ A simple utility to launch multiple World of Warcraft instances and position the
 
 This software does NOT send or allow to to send any input to World of Warcraft! It should be fully compliant with the new rules for WoW.
 
-The software is supplied "as is" under MIT license, see license file for details.
+The software is supplied "as is" under MIT license, no liability, see license file for details.
+
+You can download it [from the releases here](https://github.com/DejayRezme/WoWStarter/releases).
+
+![screenshot](screenshot.png)
 
 ## Features
 
@@ -17,6 +21,7 @@ The software is supplied "as is" under MIT license, see license file for details
 * Enable focus tracking: This enables the windows build in x-mouse focus tracking. Other utilities can do this too. Sets mouse focus tracking with no delay and no raising of windows. Applied immediately.
 * Enable hide taskbar: This sets the windows taskbar to autohide. This is useful if you don't want the taskbar to be above your smaller wow windows. Applied immediately (but not on start)
 * Ctrl-Tab hotkey: This enables a hotkey that will allow you to click on one of the smaller wow windows and switch it to the bigger window. Useful for configuring alts. Together with mouse over focus tracking you can hover over a small pip and press Ctrl+Tab to maximize, and press it again to switch back. If you press it when the maximized window is in focus then it will cycle through all wow windows
+* The utility saves a config file called WoWStarter.json next to the exe, so make sure to have write permission
 
 ---
 
