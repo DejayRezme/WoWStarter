@@ -172,8 +172,6 @@ namespace WoWStarter
 				{   // put the pips according to config vertical
 					layouts.Add(new Rectangle(pip.Left, pip.Top + i * pip.Height, pip.Width, pip.Height));
 				}
-				if (config.customLayout == null) // if nobody set any config for the custom config, set one now
-					config.customLayout = layouts.ToArray();
 			}
 			else if (config.layout == MultiBoxLayouts.CustomConfig)
 			{
