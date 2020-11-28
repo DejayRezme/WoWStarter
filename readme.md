@@ -37,6 +37,7 @@ You can download it [from the releases here](https://github.com/DejayRezme/WoWSt
 * Now launches either "Wow.exe" or "WowClassic.exe" depending on which one is found
 * You can now define multiple installPaths set "\_retail\_" folders in the WoWStarter.json file
 * After running WoWStarter once there is now a valid customLayout defined you can tweak in the config file
+* Added ability to configure the hotkey in the config file
 
 ## Todo
 
