@@ -36,6 +36,7 @@ namespace WoWStarter
 		public bool maximizeHotkey = true;
 		public bool subtractTaskbarHeight = false;
 		public bool closeWoWWithApp = false;
+		public String maximizeHotkeyString = "Control-Tab";
 		public Rectangle PIPPosition = new Rectangle(800, 800, 240, 135);
 		public Rectangle[] customLayout;
 
@@ -83,7 +84,7 @@ namespace WoWStarter
 				for (int i = 1; i < config.customLayout.Length; i++)
 					config.customLayout[i] = new Rectangle(i * 320, 0, 320, 180); 
 			}
-			
+
 			return config;
 		}
 

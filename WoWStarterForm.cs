@@ -210,17 +210,43 @@ namespace WoWStarter
 
 		private void updateHotkeyRegistry(bool registerHotkey)
 		{
-			if (registerHotkey && !isHotkeyRegistered)
-			{   // hotkey should be active but hasn't been registered
-				Win32Util.RegisterHotKey(this.Handle, 1, (int)KeyModifier.Control, Keys.Tab.GetHashCode());
-				Win32Util.RegisterHotKey(this.Handle, 2, (int)KeyModifier.Control | (int)KeyModifier.Shift, Keys.Tab.GetHashCode());
-				isHotkeyRegistered = true;
+			// try to read the hotkey definition of the config file
+			int keyModifier = 0;
+			int key = -1;
+			foreach (String hotkeyPart in config.maximizeHotkeyString.Split("-"))
+			{
+				try
+				{
+					key = Enum.Parse<Keys>(hotkeyPart).GetHashCode();
+				}
+				catch (Exception) { }
+				try
+				{
+					keyModifier |= (int)Enum.Parse<KeyModifier>(hotkeyPart);
+				}
+				catch (Exception) { }
 			}
-			else if (!registerHotkey && isHotkeyRegistered)
-			{   // hotkey shouldn't be active but still is registered
-				Win32Util.UnregisterHotKey(this.Handle, 1);
-				Win32Util.UnregisterHotKey(this.Handle, 2);
-				isHotkeyRegistered = false;
+
+			if (key == -1)
+			{
+				if (registerHotkey)
+					MessageBox.Show("Infalid hotkey specified in config file");
+				return;
+			}
+			else
+			{
+				if (registerHotkey && !isHotkeyRegistered)
+				{   // hotkey should be active but hasn't been registered
+					Win32Util.RegisterHotKey(this.Handle, 1, keyModifier, key);
+					//Win32Util.RegisterHotKey(this.Handle, 2, (int)KeyModifier.Control | (int)KeyModifier.Shift, Keys.Tab.GetHashCode());
+					isHotkeyRegistered = true;
+				}
+				else if (!registerHotkey && isHotkeyRegistered)
+				{   // hotkey shouldn't be active but still is registered
+					Win32Util.UnregisterHotKey(this.Handle, 1);
+					//Win32Util.UnregisterHotKey(this.Handle, 2);
+					isHotkeyRegistered = false;
+				}
 			}
 		}
 
