@@ -71,25 +71,8 @@ namespace WoWStarter
 				if (File.Exists(installPath + "\\WTF\\" + configWTF))
 					startInfo.Arguments = "-config " + configWTF;
 
-				wowProcess = Process.Start(startInfo);
-
-				wowProcess.WaitForInputIdle(5000);
-				IntPtr wowHandle = wowProcess.MainWindowHandle;
-
-				//Thread.Sleep(100);
-				wow[boxNumber].process = wowProcess;
-
-				// if this is our first window, get the border size by comparing window and client size
-				if (windowBorderSize == 0)
-				{
-					//int captionHeight = SystemInformation.CaptionHeight; // doesn't seem to include shadow
-					//Size borderSize = SystemInformation.Border3DSize;					
-					RECT windowRect, clientRect;
-					Win32Util.GetWindowRect(wowHandle, out windowRect);
-					Win32Util.GetClientRect(wowHandle, out clientRect);
-					windowBorderSize = ((windowRect.Right - windowRect.Left) - clientRect.Right) / 2;
-					windowCaptionSize = ((windowRect.Bottom - windowRect.Top) - clientRect.Bottom - windowBorderSize);
-				}
+				wow[boxNumber].process = Process.Start(startInfo);
+				//wowProcess.WaitForInputIdle(5000);
 			}
 		}
 
@@ -195,9 +178,9 @@ namespace WoWStarter
 		public void LayoutWoWWindow(int boxNumber, int layoutNumer, bool alwaysOnTop)
 		{
 			WoWBoxState wowState = wow[boxNumber];
+			wow[boxNumber].process.WaitForInputIdle(5000);
 			IntPtr wowHandle = wow[boxNumber].process.MainWindowHandle;
 
-			string test = wowState.process.MainWindowTitle;
 			// update the window style to borderless and captionless
 			if (wowState.isBorderless != config.borderless) {
 				Win32Util.setBorderless(wowHandle, config.borderless);
@@ -209,6 +192,17 @@ namespace WoWStarter
 			int w = layouts[layoutNumer].Width;
 			int h = layouts[layoutNumer].Height;
 
+			// if this is our first window, get the border size by comparing window and client size
+			if (windowBorderSize == 0)
+			{
+				RECT windowRect, clientRect;
+				Win32Util.GetWindowRect(wowHandle, out windowRect);
+				Win32Util.GetClientRect(wowHandle, out clientRect);
+				windowBorderSize = ((windowRect.Right - windowRect.Left) - clientRect.Right) / 2;
+				windowCaptionSize = ((windowRect.Bottom - windowRect.Top) - clientRect.Bottom - windowBorderSize);
+			}
+
+			// fix window size for borders with shadow
 			if (!config.borderless)
 			{
 				x -= windowBorderSize;
@@ -285,12 +279,12 @@ namespace WoWStarter
 			// }
 			currentMaximized = 0;
 			GenerateWoWLayout();
+			// first make sure all are launched
 			for (int i = 0; i < config.boxCount; i++)
-			{
 				LaunchWoW(i);
-				bool alwaysOnTop = config.alwaysOnTop && (i > 0);
-				LayoutWoWWindow(i, i, alwaysOnTop);
-			}
+			// the rack 'em and stack em
+			for (int i = 0; i < config.boxCount; i++)
+				LayoutWoWWindow(i, i, config.alwaysOnTop && (i > 0));
 		}
 
 		public bool isLaunched()
