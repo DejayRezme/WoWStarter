@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace WoWStarter
 {
@@ -28,7 +29,8 @@ namespace WoWStarter
 		public MultiBoxLayouts layout = MultiBoxLayouts.BottomRow;
 		public bool borderless = true;
 		public bool alwaysOnTop = false;
-		public String installPath = "C:\\Program Files\\World of Warcraft\\_retail_";
+		private String installPath = null;
+		public String[] installPaths = null;
 		public bool mouseFocusTracking = false;
 		public bool taskbarAutohide = false;
 		public bool maximizeHotkey = true;
@@ -36,6 +38,7 @@ namespace WoWStarter
 		public bool closeWoWWithApp = false;
 		public Rectangle PIPPosition = new Rectangle(800, 800, 240, 135);
 		public Rectangle[] customLayout;
+
 		public const String configFileName = "WoWStarter.json";
 
 		public static WoWStarterConfig load()
@@ -45,7 +48,20 @@ namespace WoWStarter
 				JsonSerializerOptions options = new JsonSerializerOptions();
 				options.IncludeFields = true;
 				String jsonString = File.ReadAllText(configFileName);
-				return JsonSerializer.Deserialize<WoWStarterConfig>(jsonString, options);
+				WoWStarterConfig config = JsonSerializer.Deserialize<WoWStarterConfig>(jsonString, options);
+
+				if (config.installPaths == null) 
+				{
+					if (config.installPath != null)
+						config.installPaths = new String[]{config.installPath};
+					else {
+						String wowInstall = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Blizzard Entertainment\World of Warcraft", "InstallPath", null).ToString();
+						config.installPaths = new String[]{wowInstall};
+					}
+
+				}
+				config.installPath = null;
+				return config;
 			}
 			catch (FileNotFoundException)
 			{

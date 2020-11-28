@@ -50,18 +50,25 @@ namespace WoWStarter
 			{
 				ProcessStartInfo startInfo = new ProcessStartInfo();
 
-				String wowExePath = config.installPath + "\\Wow.exe";
-				if (!File.Exists(wowExePath))
-				{   // try finding it ourselves?
-					throw new Exception("Wow.exe not found in " + config.installPath);
-				}
+				// get the appropriate install path of which directory to launch for this box
+				int installPathIndex = Math.Min(boxNumber, config.installPaths.Length - 1);
+				String installPath = config.installPaths[installPathIndex];
+
+				// check if wow.exe or wowClassic.exe exists	
+				String wowExePath;
+				if (File.Exists(installPath + "\\Wow.exe"))
+					wowExePath = installPath + "\\Wow.exe";
+				else if (File.Exists(installPath + "\\WowClassic.exe"))
+					wowExePath = installPath + "\\WowClassic.exe";
+				else
+					throw new Exception("Wow.exe or WowClassic.exe not found in " + installPath);
 
 				startInfo.FileName = wowExePath;
-				startInfo.WorkingDirectory = config.installPath;
+				startInfo.WorkingDirectory = installPath;
 
 				// check to see if special config<N>.wtf exists and use it. Otherwise don't pass argument
 				String configWTF = "config" + (boxNumber + 1) + ".wtf";
-				if (File.Exists(config.installPath + "\\WTF\\" + configWTF))
+				if (File.Exists(installPath + "\\WTF\\" + configWTF))
 					startInfo.Arguments = "-config " + configWTF;
 
 				wowProcess = Process.Start(startInfo);

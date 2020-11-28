@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace WoWStarter
@@ -43,8 +44,8 @@ namespace WoWStarter
 			Point startPosition = System.Windows.Forms.Control.MousePosition;
 			startPosition.Offset(-100, -100);
 			this.Location = startPosition;
-			this.AutoSizeMode = AutoSizeMode.GrowOnly;
 			this.AutoSize = true;
+			//this.AutoSizeMode = AutoSizeMode.GrowOnly;
 			// add handler to close app on esc
 			this.KeyPreview = true;
 			this.KeyDown += new KeyEventHandler(OnAnyKeyDown);
@@ -60,8 +61,9 @@ namespace WoWStarter
 			// Checkbox to keep running and enable hotkey to maximize window
 
 			layoutPanel = new TableLayoutPanel();
-			//layoutPanel.Location = new Point(50, 50);
 			layoutPanel.AutoSize = true;
+			//layoutPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+			layoutPanel.Dock = DockStyle.Fill;
 			layoutPanel.Padding = new Padding(30);
 			// layoutPanel.CellBorderStyle = TableLayoutPanelCellBorderStyle.InsetDouble;
 			this.Controls.Add(layoutPanel);
@@ -81,14 +83,11 @@ namespace WoWStarter
 
 			// ComboBox to select layout
 			layoutComboBox = new ComboBox();
-			//layoutComboBox.AutoSize = true;
-			layoutComboBox.Width = 200;
 			layoutComboBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
 			layoutComboBox.Items.AddRange(Enum.GetNames(typeof(MultiBoxLayouts)));
 			layoutComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
 			layoutComboBox.SelectedItem = config.layout.ToString();
-			layoutComboBox.PerformLayout();
-			layoutComboBox.Padding = new Padding(40);
+			//layoutComboBox.Padding = new Padding(40);
 			layoutComboBox.SelectedIndexChanged += new EventHandler(OnLayoutChanged);
 			AddTableLabelControl("Select Layout:", 0, row++, layoutComboBox);
 
@@ -96,12 +95,12 @@ namespace WoWStarter
 			InitNumeric(pipLeftNumeric, config.PIPPosition.Left);
 			pipTopNumeric = new NumericUpDown();
 			InitNumeric(pipTopNumeric, config.PIPPosition.Top);
-			AddTableLabelControl("PIP Position:", 0, row++, pipLeftNumeric, pipTopNumeric);
+			AddTableLabelControl("PIP Position:", 0, row++, pipLeftNumeric, pipTopNumeric, 2);
 			pipWidthNumeric = new NumericUpDown();
 			InitNumeric(pipWidthNumeric, config.PIPPosition.Width);
 			pipHeightNumeric = new NumericUpDown();
 			InitNumeric(pipHeightNumeric, config.PIPPosition.Height);
-			AddTableLabelControl("PIP Size:", 0, row++, pipWidthNumeric, pipHeightNumeric);
+			AddTableLabelControl("PIP Size:", 0, row++, pipWidthNumeric, pipHeightNumeric, 2);
 			updatePIPSizeVisible();
 
 			borderlessCheckBox = new CheckBox();
@@ -133,27 +132,74 @@ namespace WoWStarter
 			maximizeHotkeyCheckBox.AutoSize = true;
 			maximizeHotkeyCheckBox.Checked = config.maximizeHotkey;
 			maximizeHotkeyCheckBox.CheckedChanged += new EventHandler(OnMaximizeHotkeyChanged);
-			AddTableLabelControl("Ctrl-Tab hotkey: ", 0, row++, maximizeHotkeyCheckBox);
+			AddTableLabelControl("Ctrl+Tab hotkey: ", 0, row++, maximizeHotkeyCheckBox);
 			updateHotkeyRegistry(config.maximizeHotkey);
 
 			// type in path to wow install. Fun!
 			installPathTextBox = new TextBox();
+			//installPathTextBox.Text = config.installPath;
+			installPathTextBox.Text = String.Join(", ", config.installPaths);
 			installPathTextBox.AutoSize = true;
-			installPathTextBox.Text = config.installPath;
+			installPathTextBox.ReadOnly = true;
 			installPathTextBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-			installPathTextBox.TextChanged += new EventHandler(OnInstallPathChanged);
-			AddTableLabelControl("Install path:", 0, row++, installPathTextBox);
-			// Select wow install and retail or classic
+			checkInstallPathSet();
+
+			Button installFileSelectorButton = new Button();
+			installFileSelectorButton.Text = "Browse";
+			installFileSelectorButton.AutoSize = true;
+			installFileSelectorButton.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+			installFileSelectorButton.Click += new EventHandler(OnInstallFileSelectorClicked);
+
+			layoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+			layoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+			layoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+			layoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 1));
+			layoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+			AddTableLabelControl("Install path wow.exe:", 0, row++, installPathTextBox, installFileSelectorButton, 3);
 
 			// Button to launch wow
 			launchButton = new Button();
+			launchButton.Dock = DockStyle.Top;
 			launchButton.Text = "Launch WoW / Apply changes";
 			launchButton.AutoSize = true;
+			launchButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
 			launchButton.Click += new EventHandler(OnLaunchButtonClicked);
-			launchButton.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+			//launchButton.Anchor = AnchorStyles.Left | AnchorStyles.Right;
 			layoutPanel.Controls.Add(launchButton);
 			layoutPanel.SetCellPosition(launchButton, new TableLayoutPanelCellPosition(0, row));
-			layoutPanel.SetColumnSpan(launchButton, 3);
+			layoutPanel.SetColumnSpan(launchButton, 5);
+
+			// set the minimum size for the form
+			this.MinimumSize = new Size(layoutPanel.PreferredSize.Width, layoutPanel.PreferredSize.Height + 50);
+		}
+
+		private void OnInstallFileSelectorClicked(object sender, EventArgs e)
+		{
+			FolderBrowserDialog fileDialog = new FolderBrowserDialog();
+			if (Directory.Exists(config.installPaths[0]))
+				fileDialog.SelectedPath = config.installPaths[0];
+			else
+				fileDialog.SelectedPath = Directory.GetCurrentDirectory();
+			DialogResult fileResult = fileDialog.ShowDialog();
+
+			if (fileResult == DialogResult.OK)
+			{
+				config.installPaths = new String[] { fileDialog.SelectedPath };
+				installPathTextBox.Text = fileDialog.SelectedPath;
+				checkInstallPathSet();
+			}
+		}
+
+		private bool checkInstallPathSet()
+		{
+			bool validPath = true;
+			foreach (String path in config.installPaths)
+				if (!File.Exists(path + "\\wow.exe") && !File.Exists(path + "\\wowClassic.exe"))
+					validPath = false;
+			installPathTextBox.BackColor = DefaultBackColor;
+			installPathTextBox.ForeColor = validPath ? Color.Black : Color.Red;
+			return validPath;
 		}
 
 		private void OnMaximizeHotkeyChanged(object sender, EventArgs e)
@@ -165,25 +211,20 @@ namespace WoWStarter
 		private void updateHotkeyRegistry(bool registerHotkey)
 		{
 			if (registerHotkey && !isHotkeyRegistered)
-			{	// hotkey should be active but hasn't been registered
+			{   // hotkey should be active but hasn't been registered
 				Win32Util.RegisterHotKey(this.Handle, 1, (int)KeyModifier.Control, Keys.Tab.GetHashCode());
 				Win32Util.RegisterHotKey(this.Handle, 2, (int)KeyModifier.Control | (int)KeyModifier.Shift, Keys.Tab.GetHashCode());
 				isHotkeyRegistered = true;
 			}
-			else if (!registerHotkey && isHotkeyRegistered) 
-			{	// hotkey shouldn't be active but still is registered
+			else if (!registerHotkey && isHotkeyRegistered)
+			{   // hotkey shouldn't be active but still is registered
 				Win32Util.UnregisterHotKey(this.Handle, 1);
 				Win32Util.UnregisterHotKey(this.Handle, 2);
 				isHotkeyRegistered = false;
 			}
 		}
-		
-		private void OnInstallPathChanged(object sender, EventArgs e)
-		{
-			config.installPath = installPathTextBox.Text;
-		}
 
-		protected void AddTableLabelControl(String text, int column, int row, Control control, Control control2 = null)
+		protected void AddTableLabelControl(String text, int column, int row, Control control, Control control2 = null, int columnSpan = 4)
 		{
 			Label label = new Label();
 			label.Text = text;
@@ -195,14 +236,15 @@ namespace WoWStarter
 
 			//control.Anchor = AnchorStyles.Left;
 			control.Padding = new Padding(cellPadding);
-			layoutPanel.SetColumnSpan(control, control2 != null ? 1 : 2);
 			layoutPanel.Controls.Add(control);
 			layoutPanel.SetCellPosition(control, new TableLayoutPanelCellPosition(column + 1, row));
-			if (control2 != null) 
+			layoutPanel.SetColumnSpan(control, columnSpan);
+			if (control2 != null)
 			{
-				control2.Padding = new Padding(cellPadding);
+				//control2.Padding = new Padding(cellPadding);
 				layoutPanel.Controls.Add(control2);
 				layoutPanel.SetCellPosition(control2, new TableLayoutPanelCellPosition(column + 2, row));
+				layoutPanel.SetColumnSpan(control2, 4 - columnSpan);
 			}
 		}
 
@@ -225,14 +267,14 @@ namespace WoWStarter
 
 		private void OnPIPSizeChanged(object sender, EventArgs e)
 		{
-			config.PIPPosition.Left = (int) pipLeftNumeric.Value;
-			config.PIPPosition.Top = (int) pipTopNumeric.Value;
-			config.PIPPosition.Width = (int) pipWidthNumeric.Value;
-			config.PIPPosition.Height = (int) pipHeightNumeric.Value;
+			config.PIPPosition.Left = (int)pipLeftNumeric.Value;
+			config.PIPPosition.Top = (int)pipTopNumeric.Value;
+			config.PIPPosition.Width = (int)pipWidthNumeric.Value;
+			config.PIPPosition.Height = (int)pipHeightNumeric.Value;
 			//updateWoWClientsIfRunning();
 		}
 
-		private void updatePIPSizeVisible() 
+		private void updatePIPSizeVisible()
 		{
 			pipLeftNumeric.Enabled = config.layout == MultiBoxLayouts.PIPVertical;
 			pipTopNumeric.Enabled = config.layout == MultiBoxLayouts.PIPVertical;
@@ -243,9 +285,9 @@ namespace WoWStarter
 			boxNumeric.Enabled = config.layout != MultiBoxLayouts.CustomConfig;
 		}
 
-		private void updateWoWClientsIfRunning() 
+		private void updateWoWClientsIfRunning()
 		{
-			if (resizer.isLaunched()) 
+			if (resizer.isLaunched())
 			{
 				resizer.LaunchWoWClients();
 				this.BringToFront();
@@ -286,8 +328,15 @@ namespace WoWStarter
 
 		protected void OnLaunchButtonClicked(object sender, EventArgs e)
 		{
-			resizer.LaunchWoWClients();
-			this.BringToFront();
+			if (!checkInstallPathSet())
+			{
+				MessageBox.Show("Wow.exe not found! Please select an retail directory containing wow.exe or the classic directory containing wowClassic.exe!", "Wow.exe not found");
+			}
+			else
+			{
+				resizer.LaunchWoWClients();
+				this.BringToFront();
+			}
 		}
 
 		protected void OnAnyKeyDown(object sender, KeyEventArgs e)
@@ -301,7 +350,7 @@ namespace WoWStarter
 			config.save();
 			if (config.closeWoWWithApp)
 				resizer.CloseWoWClients();
-			//Win32Util.UnregisterHotKey(this.Handle, 0);
+			updateHotkeyRegistry(false);
 			base.OnClosing(e);
 		}
 
