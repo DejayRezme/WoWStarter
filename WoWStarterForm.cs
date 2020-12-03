@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
+using CryptoTool;
 
 namespace WoWStarter
 {
@@ -25,11 +28,12 @@ namespace WoWStarter
 		protected CheckBox taskbarAutohideCheckBox;
 		protected CheckBox maximizeHotkeyCheckBox;
 		protected TextBox installPathTextBox;
+		protected Button clipboardButton;
 		protected Button launchButton;
 
 		int cellPadding = 10;
 
-		private bool isHotkeyRegistered = false;
+		private Dictionary<String, int> hotkeys = new Dictionary<String, int>();
 
 		public WoWStarterForm()
 		{
@@ -39,6 +43,14 @@ namespace WoWStarter
 			this.Text = "WoW Starter";
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			//this.ClientSize = new System.Drawing.Size(800, 450);
+			try
+			{   // try setting the app icon from the launched executable
+				this.Icon = Icon.ExtractAssociatedIcon(AppDomain.CurrentDomain.BaseDirectory + AppDomain.CurrentDomain.FriendlyName + ".exe");
+			}
+			catch (System.Exception)
+			{
+				this.ShowIcon = false;
+			}
 
 			this.StartPosition = FormStartPosition.Manual;
 			Point startPosition = System.Windows.Forms.Control.MousePosition;
@@ -132,7 +144,7 @@ namespace WoWStarter
 			maximizeHotkeyCheckBox.AutoSize = true;
 			maximizeHotkeyCheckBox.Checked = config.maximizeHotkey;
 			maximizeHotkeyCheckBox.CheckedChanged += new EventHandler(OnMaximizeHotkeyChanged);
-			AddTableLabelControl("Ctrl+Tab hotkey: ", 0, row++, maximizeHotkeyCheckBox);
+			AddTableLabelControl("Maximize hotkey: ", 0, row++, maximizeHotkeyCheckBox);
 			updateHotkeyRegistry(config.maximizeHotkey);
 
 			// type in path to wow install. Fun!
@@ -158,6 +170,18 @@ namespace WoWStarter
 
 			AddTableLabelControl("Install path wow.exe:", 0, row++, installPathTextBox, installFileSelectorButton, 3);
 
+			// nothing to see here, move along
+			if (config.unsecureClipboardString != null) 
+			{
+				clipboardButton = new Button();
+				clipboardButton.Text = "Copy";
+				clipboardButton.AutoSize = true;
+				clipboardButton.Dock = DockStyle.Right;
+				clipboardButton.Click += new EventHandler(OnClipboardButtonClicked);
+				layoutPanel.Controls.Add(clipboardButton);
+				layoutPanel.SetCellPosition(clipboardButton, new TableLayoutPanelCellPosition(4, row++));
+			}
+
 			// Button to launch wow
 			launchButton = new Button();
 			launchButton.Dock = DockStyle.Top;
@@ -172,6 +196,15 @@ namespace WoWStarter
 
 			// set the minimum size for the form
 			this.MinimumSize = new Size(layoutPanel.PreferredSize.Width, layoutPanel.PreferredSize.Height + 50);
+		}
+
+		private void OnClipboardButtonClicked(object sender, EventArgs e)
+		{
+			String passphrase = "asldfjasökdlhaeföascnklelökshv";
+			if (!config.unsecureClipboardString.StartsWith("crypto")) 
+				config.unsecureClipboardString = "crypto" + Crypto.Encrypt(Crypto.GetMACAddress() + config.unsecureClipboardString, passphrase);
+			String clipboardString = Crypto.Decrypt(config.unsecureClipboardString.Substring(6), passphrase).Substring(12);
+			System.Windows.Forms.Clipboard.SetText(clipboardString);
 		}
 
 		private void OnInstallFileSelectorClicked(object sender, EventArgs e)
@@ -208,12 +241,17 @@ namespace WoWStarter
 			updateHotkeyRegistry(config.maximizeHotkey);
 		}
 
-		private void updateHotkeyRegistry(bool registerHotkey)
+		private void updateHotkeyRegistry(bool enableHotkey)
+		{
+			registerHotkey(enableHotkey, config.maximizeHotkeyString, 1);
+		}
+
+		private void registerHotkey(bool enableHotkey, String hotkeyString, int idCode)
 		{
 			// try to read the hotkey definition of the config file
 			int keyModifier = 0;
 			int key = -1;
-			foreach (String hotkeyPart in config.maximizeHotkeyString.Split("-"))
+			foreach (String hotkeyPart in hotkeyString.Split("-"))
 			{
 				try
 				{
@@ -229,23 +267,22 @@ namespace WoWStarter
 
 			if (key == -1)
 			{
-				if (registerHotkey)
+				if (enableHotkey)
 					MessageBox.Show("Infalid hotkey specified in config file");
 				return;
 			}
 			else
 			{
-				if (registerHotkey && !isHotkeyRegistered)
+				bool isHotkeyRegistered = hotkeys.ContainsKey(hotkeyString);
+				if (enableHotkey && !isHotkeyRegistered)
 				{   // hotkey should be active but hasn't been registered
-					Win32Util.RegisterHotKey(this.Handle, 1, keyModifier, key);
-					//Win32Util.RegisterHotKey(this.Handle, 2, (int)KeyModifier.Control | (int)KeyModifier.Shift, Keys.Tab.GetHashCode());
-					isHotkeyRegistered = true;
+					Win32Util.RegisterHotKey(this.Handle, idCode, keyModifier, key);
+					hotkeys.Add(hotkeyString, idCode);
 				}
-				else if (!registerHotkey && isHotkeyRegistered)
+				else if (!enableHotkey && isHotkeyRegistered)
 				{   // hotkey shouldn't be active but still is registered
-					Win32Util.UnregisterHotKey(this.Handle, 1);
-					//Win32Util.UnregisterHotKey(this.Handle, 2);
-					isHotkeyRegistered = false;
+					Win32Util.UnregisterHotKey(this.Handle, idCode);
+					hotkeys.Remove(hotkeyString);
 				}
 			}
 		}

@@ -8,6 +8,7 @@
     <PublishSingleFile>true</PublishSingleFile>
 	<SelfContained>false</SelfContained>
 	<DebugType>embedded</DebugType>
+	<ApplicationIcon>WoWStarter.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
