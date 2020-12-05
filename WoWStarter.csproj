@@ -23,6 +23,7 @@
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	<DebugType>embedded</DebugType>
 	<PublishReadyToRun>false</PublishReadyToRun>
+	<ApplicationIcon>WoWStarter.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

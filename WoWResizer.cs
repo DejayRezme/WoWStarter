@@ -270,13 +270,56 @@ namespace WoWStarter
 			}
 		}
 
+		public bool isWoWRunning(int boxNumber) 
+		{
+			return wow[boxNumber].process != null && !wow[boxNumber].process.HasExited && wow[boxNumber].process.MainWindowHandle != IntPtr.Zero;
+		}
+
+		public int recoverAlreadyRunningWoWWindows() 
+		{
+			GenerateWoWLayout();
+
+			// see if we can / want to recover previous wow instances
+			int runningWoWs = 0;
+			int orphanCount = 0;			
+			for (int i = 0; i < config.boxCount; i++)
+				if (isWoWRunning(i))
+					runningWoWs++;
+
+			if (runningWoWs < config.boxCount) 
+			{
+				// find orphaned wow processes that are not in our list and sort them in dictionary
+				SortedDictionary<long, Process> orphans = new SortedDictionary<long, Process>();
+				Process[] list = Process.GetProcesses();
+				foreach (Process p in list) 
+				{
+					if (p.MainWindowTitle.StartsWith("World of Warcraft") && p.MainModule.ModuleName.Equals("Wow.exe")) 
+					{
+						bool isOrphaned = true;
+						for (int i = 0; i < config.boxCount; i++)
+							if (isWoWRunning(i) && wow[i].process.MainWindowHandle == p.MainWindowHandle)
+								isOrphaned = false;
+						if (isOrphaned) 
+							orphans.Add(p.StartTime.Ticks, p);
+					}
+				}
+				orphanCount = orphans.Count;
+
+				// go through each wow and assign the oldest orphan
+				List<Process> orphansList = new List<Process>(orphans.Values);
+				//orphansList.Reverse(); // why no reverse? Weird lol
+				for (int i = 0; i < config.boxCount; i++)
+					if (!isWoWRunning(i) && orphansList.Count > 0)
+					{
+						wow[i].process = orphansList[0];
+						orphansList.RemoveAt(0);
+					}
+			}
+			return orphanCount;
+		}
+
 		public void LaunchWoWClients()
 		{
-			// Process[] list = Process.GetProcesses();
-			// foreach (Process p in list) {
-			// 	if (p.MainWindowTitle.StartsWith("World of Warcraft"))
-			// 		Console.WriteLine("WoW: " + p.ToString());
-			// }
 			currentMaximized = 0;
 			GenerateWoWLayout();
 			// first make sure all are launched

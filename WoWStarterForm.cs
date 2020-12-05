@@ -39,6 +39,7 @@ namespace WoWStarter
 		{
 			config = WoWStarterConfig.load();
 			resizer = new WoWResizer(config);
+			resizer.recoverAlreadyRunningWoWWindows();
 
 			this.Text = "WoW Starter";
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -200,7 +201,7 @@ namespace WoWStarter
 
 		private void OnClipboardButtonClicked(object sender, EventArgs e)
 		{
-			String passphrase = "asldfjasökdlhaeföascnklelökshv";
+			String passphrase = "xehu0qVfxU5xi9CQhdmf";
 			if (!config.unsecureClipboardString.StartsWith("crypto")) 
 				config.unsecureClipboardString = "crypto" + Crypto.Encrypt(Crypto.GetMACAddress() + config.unsecureClipboardString, passphrase);
 			String clipboardString = Crypto.Decrypt(config.unsecureClipboardString.Substring(6), passphrase).Substring(12);
